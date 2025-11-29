@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}منصة الفؤاد - {{ user.user_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-graduation-cap"></i>
+            <div>
+                <h1><span style="color: white;">الفؤاد</span></h1>
+                <p style="font-size: 0.75rem; opacity: 0.8;">الأستاذ محمد فواد</p>
+            </div>
+        </div>
+        <ul>
+            <li class="active" onclick="showSection('profile')">
+                <i class="fas fa-user"></i> <span>الملف الشخصي</span>
+            </li>
+            <li onclick="showSection('pointsSystem')">
+                <i class="fas fa-trophy"></i> <span>نظام النقاط</span>
+            </li>
+            <li onclick="showSection('allCourses')">
+                <i class="fas fa-book-open"></i> <span>الكورسات الإجمالية</span>
+            </li>
+            <li onclick="showSection('myCourses')">
+                <i class="fas fa-shopping-bag"></i> <span>الكورسات المشتراة</span>
+            </li>
+            <li onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
+            </li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h1 id="sectionTitle">الملف الشخصي</h1>
+            <div id="userWelcome">مرحباً، <span id="studentName">{{ user.user_name }}</span></div>
+        </div>
+        
+        <!-- قسم الملف الشخصي -->
+        <div id="profileSection" class="section-content">
+            <div class="user-info">
+                <h3><i class="fas fa-id-card"></i> معلومات الطالب</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>الاسم الكامل</label>
+                        <span id="profileName">{{ user.user_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>رقم الهاتف</label>
+                        <span id="profilePhone">{{ user.user_phone }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>السنة الدراسية</label>
+                        <span id="profileGrade">{{ user.user_grade }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>نظام التعليم</label>
+                        <span id="profileType">{{ user.user_education_type }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>الفيديوهات المشاهدة</h3>
+                    <div class="value" id="totalVideosWatched">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>الكورسات المشتراة</h3>
+                    <div class="value" id="purchasedCoursesCount">0</div>
+                </div>
+                <div class="stat-card points-card">
+                    <h3>النقاط</h3>
+                    <div class="value" id="studentPoints">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>آخر مشاهدة</h3>
+                    <div class="value" id="lastWatched">لا يوجد</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- قسم نظام النقاط -->
+        <div id="pointsSystemSection" class="section-content" style="display: none;">
+            <div class="user-info">
+                <h3><i class="fas fa-star"></i> ترتيب الطلاب حسب النقاط</h3>
+                <div class="grade-tabs">
+                    <div class="grade-tab active" onclick="changePointsTab('first')">أولى ثانوي</div>
+                    <div class="grade-tab" onclick="changePointsTab('second')">ثانية ثانوي</div>
+                    <div class="grade-tab" onclick="changePointsTab('third')">تالتة ثانوي</div>
+                </div>
+                <div id="pointsTableContainer">
+                    <!-- سيتم تعبئتها ديناميكياً -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- قسم الكورسات المتاحة -->
+        <!-- قسم الكورسات المتاحة -->
+<div id="allCoursesSection" class="section-content" style="display: none;">
+    
+    <div id="allCoursesList" class="courses-grid">
+        <!-- سيتم تعبئتها ديناميكياً -->
+    </div>
+</div>
+        
+        <!-- قسم الكورسات المشتراة -->
+        <div id="myCoursesSection" class="section-content" style="display: none;">
+       
+            <div id="purchasedCoursesList" class="courses-grid">
+                <!-- سيتم تعبئتها ديناميكياً -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إدخال الكود -->
+<div id="codeModal" class="modal">
+    <div class="modal-content slide-in">
+        <div class="modal-header">
+            <h2><i class="fas fa-code"></i> إدخال الكود</h2>
+            <button class="close-btn" onclick="hideModal('codeModal')">&times;</button>
+        </div>
+        <p>أدخل الكود المرفق مع الدرس لمشاهدة الفيديو</p>
+        <div class="form-group">
+            <input type="text" id="codeInput" placeholder="أدخل الكود هنا">
+            <input type="hidden" id="videoId">
+        </div>
+        <button class="btn btn-primary btn-rounded" id="useCodeBtn">
+            <i class="fas fa-play"></i> مشاهدة
+        </button>
+    </div>
+</div>
+
+<!-- نافذة مشاهدة الفيديو -->
+<div id="videoModal" class="modal">
+    <div class="modal-content slide-in" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 id="videoModalTitle"><i class="fas fa-play"></i> مشاهدة الفيديو</h2>
+            <button class="close-btn" onclick="hideModal('videoModal')">&times;</button>
+        </div>
+        <div id="videoPlayerContainer">
+            <!-- سيتم تعبئتها ديناميكياً -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // تعيين بيانات المستخدم للاستخدام في JavaScript
+    document.body.dataset.userGrade = "{{ user.user_grade }}";
+    document.body.classList.add('student-dashboard');
+    
+    // دالة تسجيل الخروج
+    function logout() {
+        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/student.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}منصة الفؤاد التعليمية - الأستاذ محمد فواد{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/login.ico') }}">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    {% block content %}{% endblock %}
+    
+    <!-- الفوتر الجديد -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <!-- معلومات الأستاذ -->
+            <div class="footer-section">
+                <h4><i class="fas fa-chalkboard-teacher"></i> الأستاذ محمد فواد</h4>
+                <p>مدرس اللغة العربية</p>
+                <div class="social-links">
+                    <a href="https://wa.me/201113819421" target="_blank" class="social-link whatsapp">
+                        <i class="fab fa-whatsapp"></i>
+                        الواتساب
+                    </a>
+                    <a href="https://www.facebook.com/share/1BZHfiRr99/" target="_blank" class="social-link facebook">
+                        <i class="fab fa-facebook"></i>
+                        الفيسبوك
+                    </a>
+                    <a href="https://www.youtube.com/@Mr.mohamed_fouad315" target="_blank" class="social-link youtube">
+                        <i class="fab fa-youtube"></i>
+                        اليوتيوب
+                    </a>
+                </div>
+            </div>
+
+            <!-- المطور -->
+            <div class="footer-section">
+                <h4><i class="fas fa-code"></i> المطور</h4>
+                <p>Mr. Omar Ibrahim</p>
+                <p>Full Stack Developer</p>
+                <div class="developer-contact">
+                    
+                      
+                       
+                    </a>
+                </div>
+            </div>
+
+            <!-- روابط سريعة -->
+            <div class="footer-section">
+                <h4><i class="fas fa-link"></i> روابط سريعة</h4>
+                <ul class="footer-links">
+                    <li><a href="/"><i class="fas fa-home"></i> الرئيسية</a></li>
+                   
+                </ul>
+            </div>
+        </div>
+        
+        <!-- حقوق النشر -->
+        <div class="footer-bottom">
+            <p>&copy; 2025 منصة الفؤاد التعليمية. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}منصة الفؤاد - {{ user.user_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <div>
+                <h1>لوحة المعلم</h1>
+                <p style="font-size: 0.75rem; opacity: 0.8;">الأستاذ محمد فواد</p>
+            </div>
+        </div>
+        <ul>
+            <li class="active" onclick="showTeacherSection('teacherHome')">
+                <i class="fas fa-tachometer-alt"></i> <span>الصفحة الرئيسية</span>
+            </li>
+            <li onclick="showTeacherSection('uploadVideo')">
+                <i class="fas fa-upload"></i> <span>رفع الفيديوهات</span>
+            </li>
+            <li onclick="showTeacherSection('studentsList')">
+                <i class="fas fa-users"></i> <span>قائمة الطلاب</span>
+            </li>
+            <li onclick="showTeacherSection('videosList')">
+                <i class="fas fa-video"></i> <span>الفيديوهات</span>
+            </li>
+            <li onclick="showTeacherSection('teacherPoints')">
+                <i class="fas fa-trophy"></i> <span>نظام النقاط</span>
+            </li>
+            <li onclick="showTeacherSection('studentRecords')">
+                <i class="fas fa-history"></i> <span>سجلات الطلاب</span>
+            </li>
+            <li onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
+            </li>
+        </ul>
+    </div>
+    <div class="main-content teacher-dashboard">
+        <!-- الصفحة الرئيسية للمعلم -->
+        <div id="teacherHomeSection" class="section-content">
+            <div class="header">
+                <h1><i class="fas fa-tachometer-alt"></i> لوحة تحكم المستر</h1>
+                <div id="teacherWelcome">مرحباً، <span>{{ user.user_name }}</span></div>
+            </div>
+            
+            <div class="user-info">
+                <h3><i class="fas fa-info-circle"></i> نظرة عامة</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>إجمالي الطلاب</h3>
+                        <div class="value" id="totalStudents">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>إجمالي الفيديوهات</h3>
+                        <div class="value" id="totalVideos">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>إجمالي المشاهدات</3>
+                        <div class="value" id="totalViews">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- قسم رفع الفيديوهات -->
+        <div id="uploadVideoSection" class="section-content" style="display: none;">
+            <div class="header">
+                <h1><i class="fas fa-upload"></i> رفع فيديو جديد</h1>
+            </div>
+            
+            <div class="file-upload" onclick="document.getElementById('videoFile').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>انقر لرفع فيديو</h3>
+                <p>يمكنك رفع ملفات الفيديو من جهازك</p>
+                <input type="file" id="videoFile" accept="video/*">
+            </div>
+
+            <div class="thumbnail-upload">
+                <div class="form-group">
+                    <label for="videoThumbnail"><i class="fas fa-image"></i> الصورة المصغرة للفيديو</label>
+                    <input type="file" id="videoThumbnail" accept="image/*" onchange="previewThumbnail(this)">
+                </div>
+                <div class="thumbnail-preview" id="thumbnailPreview"></div>
+            </div>
+            
+            <div class="user-info">
+                <div class="form-group">
+                    <label for="videoTitle">عنوان الفيديو</label>
+                    <input type="text" id="videoTitle" placeholder="أدخل عنوان الفيديو">
+                </div>
+                <div class="form-group">
+                    <label for="videoDescription">وصف الفيديو</label>
+                    <textarea id="videoDescription" rows="4" placeholder="أدخل وصف الفيديو"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="videoGrade">السنة الدراسية</label>
+                    <select id="videoGrade">
+                        <option value="أولى ثانوي">أولى ثانوي</option>
+                        <option value="ثانية ثانوي">ثانية ثانوي</option>
+                        <option value="تالتة ثانوي">تالتة ثانوي</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-rounded" id="uploadVideoBtn">
+                    <i class="fas fa-upload"></i> رفع الفيديو
+                </button>
+            </div>
+        </div>
+        
+        <!-- قسم قائمة الطلاب -->
+        <div id="studentsListSection" class="section-content" style="display: none;">
+            <div class="header">
+                <h1><i class="fas fa-users"></i> قائمة الطلاب</h1>
+            </div>
+            
+            <!-- أزرار التصفية المحسنة -->
+            <div class="students-tabs">
+                <div class="students-tab active" onclick="changeStudentsTab('first')">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>أولى ثانوي</span>
+                    <span class="tab-badge" id="firstGradeCount">0</span>
+                </div>
+                <div class="students-tab" onclick="changeStudentsTab('second')">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>ثانية ثانوي</span>
+                    <span class="tab-badge" id="secondGradeCount">0</span>
+                </div>
+                <div class="students-tab" onclick="changeStudentsTab('third')">
+                    <i class="fas fa-award"></i>
+                    <span>تالتة ثانوي</span>
+                    <span class="tab-badge" id="thirdGradeCount">0</span>
+                </div>
+            </div>
+            
+            <!-- شريط البحث الجديد -->
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="studentSearch" placeholder="ابحث عن طالب بالاسم..." class="search-input">
+                    <button class="search-clear" id="clearSearch" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="search-results-info" id="searchResultsInfo">
+                    <!-- سيتم عرض معلومات البحث هنا -->
+                </div>
+            </div>
+            
+            <div class="student-table-container">
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>اسم الطالب</th>
+                            <th>رقم الهاتف</th>
+                            <th>رقم ولي الأمر</th>
+                            <th>النظام</th>
+                            <th>النقاط</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <!-- سيتم تعبئتها ديناميكياً -->
+                    </tbody>
+                </table>
+                
+                <!-- حالة عدم وجود نتائج -->
+                <div id="noResults" class="empty-state" style="display: none;">
+                    <i class="fas fa-search"></i>
+                    <h3>لا توجد نتائج</h3>
+                    <p>لم نتمكن من العثور على طلاب يطابقون بحثك</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- قسم قائمة الفيديوهات -->
+        <div id="videosListSection" class="section-content" style="display: none;">
+            <div class="header">
+                <h1><i class="fas fa-video"></i> قائمة الفيديوهات</h1>
+            </div>
+            
+            <!-- شريط البحث في الفيديوهات -->
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="videoSearch" placeholder="ابحث عن فيديو بالاسم أو الوصف..." class="search-input">
+                    <button class="search-clear" id="clearVideoSearch" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="search-results-info" id="videoSearchResultsInfo">
+                    <!-- سيتم عرض معلومات البحث هنا -->
+                </div>
+            </div>
+            
+            <!-- تصفية الفيديوهات حسب الصف -->
+            <div class="videos-filter-tabs">
+                <div class="filter-tab active" onclick="filterVideos('all')">
+                    <i class="fas fa-layer-group"></i>
+                    <span>جميع الفيديوهات</span>
+                    <span class="tab-badge" id="allVideosCount">0</span>
+                </div>
+                <div class="filter-tab" onclick="filterVideos('أولى ثانوي')">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>أولى ثانوي</span>
+                    <span class="tab-badge" id="firstGradeVideosCount">0</span>
+                </div>
+                <div class="filter-tab" onclick="filterVideos('ثانية ثانوي')">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>ثانية ثانوي</span>
+                    <span class="tab-badge" id="secondGradeVideosCount">0</span>
+                </div>
+                <div class="filter-tab" onclick="filterVideos('تالتة ثانوي')">
+                    <i class="fas fa-award"></i>
+                    <span>تالتة ثانوي</span>
+                    <span class="tab-badge" id="thirdGradeVideosCount">0</span>
+                </div>
+            </div>
+            
+            <!-- شبكة عرض الفيديوهات -->
+            <div id="videosList" class="videos-grid-container">
+                <!-- سيتم تعبئتها ديناميكياً -->
+            </div>
+            
+            <!-- حالة عدم وجود فيديوهات -->
+            <div id="noVideosFound" class="empty-state" style="display: none;">
+                <i class="fas fa-video-slash"></i>
+                <h3>لا توجد فيديوهات</h3>
+                <p>لم يتم العثور على فيديوهات تطابق بحثك</p>
+            </div>
+        </div>
+        
+        <!-- قسم نظام النقاط للمعلم -->
+        <div id="teacherPointsSection" class="section-content" style="display: none;">
+            <div class="header">
+                <h1><i class="fas fa-trophy"></i> نظام النقاط</h1>
+            </div>
+            
+            <div class="user-info">
+                <h3><i class="fas fa-star"></i> ترتيب الطلاب حسب النقاط</h3>
+                <div class="grade-tabs">
+                    <div class="grade-tab active" onclick="changeTeacherPointsTab('first')">أولى ثانوي</div>
+                    <div class="grade-tab" onclick="changeTeacherPointsTab('second')">ثانية ثانوي</div>
+                    <div class="grade-tab" onclick="changeTeacherPointsTab('third')">تالتة ثانوي</div>
+                </div>
+                <div id="teacherPointsTableContainer">
+                    <!-- سيتم تعبئتها ديناميكياً -->
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم سجلات الطلاب -->
+        <div id="studentRecordsSection" class="section-content" style="display: none;">
+            <div class="header">
+                <h1><i class="fas fa-history"></i> سجلات الطلاب</h1>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="studentRecordsSearch" placeholder="ابحث عن طالب..." class="search-input">
+                </div>
+            </div>
+            
+            <div class="student-records-container">
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>اسم الطالب</th>
+                            <th>رقم الهاتف</th>
+                            <th>عدد الحصص المفتوحة</th>
+                            <th>آخر فتح</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentRecordsTableBody">
+                        <!-- سيتم تعبئتها ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إدارة الطالب -->
+<div id="studentManagementModal" class="modal student-management-modal">
+    <div class="modal-content slide-in">
+        <div class="modal-header">
+            <h2><i class="fas fa-cog"></i> إدارة حساب الطالب</h2>
+            <button class="close-btn" onclick="hideModal('studentManagementModal')">&times;</button>
+        </div>
+        <div id="studentManagementContent">
+            <!-- سيتم تعبئة المحتوى ديناميكياً -->
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button class="btn btn-secondary btn-sm btn-rounded" onclick="hideModal('studentManagementModal')">إلغاء</button>
+            <button class="btn btn-primary btn-sm btn-rounded" onclick="saveStudentChanges()">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة توليد الأكواد المتعددة -->
+<div class="modal" id="generateCodesModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-key"></i> توليد أكواد للفيديو</h2>
+            <button class="close-btn" onclick="hideModal('generateCodesModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>اختر الفيديو:</label>
+                <select id="videoForCodes" class="form-control">
+                    <!-- سيتم تعبئتها بالفيـديوهات -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>عدد الأكواد المطلوبة:</label>
+                <input type="number" id="codesCount" class="form-control" min="1" max="100" value="1" placeholder="أدخل عدد الأكواد">
+                <small style="color: #6c757d; font-size: 0.8rem;">يمكنك توليد من 1 إلى 100 كود في المرة الواحدة</small>
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <button class="btn btn-primary" onclick="generateMultipleCodes()" style="width: 100%;">
+                    <i class="fas fa-key"></i> توليد الأكواد
+                </button>
+            </div>
+            
+            <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px;">
+                <p style="margin: 0; color: #0369a1; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>معلومات مهمة:</strong><br>
+                    • كل كود سيكون صالح للاستخدام مرة واحدة فقط<br>
+                    • الكود سيعمل فقط على الفيديو المحدد<br>
+                    • لا يمكن استخدام الكود لأي فيديو آخر
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.body.classList.add('teacher-dashboard');
+    
+    // دالة تسجيل الخروج
+    function logout() {
+        if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/teacher.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,735 @@
+{% extends "base.html" %}
+
+{% block title %}تشغيل الفيديو - {{ video.title }}{% endblock %}
+
+{% block content %}
+<div class="video-player-page">
+    <!-- شريط التنقل -->
+    <nav class="player-nav">
+        <div class="nav-container">
+            <button class="btn btn-secondary btn-sm" onclick="goBack()">
+                <i class="fas fa-arrow-right"></i> العودة
+            </button>
+            <h1>{{ video.title }}</h1>
+            <div class="points-info">
+                <span class="points-badge" id="pointsBadge">
+                    <i class="fas fa-star"></i>
+                    <span id="currentPoints">0</span> نقطة
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- مشغل الفيديو الرئيسي -->
+    <div class="video-player-container">
+        <div class="video-wrapper">
+            <video 
+                id="mainVideoPlayer" 
+                controls 
+                controlsList="nodownload"
+                poster="{{ video.thumbnail }}"
+                playsinline
+                webkit-playsinline
+            >
+                <source src="{{ url_for('api_stream_video', video_id=video.id) }}" type="video/mp4">
+                متصفحك لا يدعم تشغيل الفيديو
+            </video>
+            
+            <!-- عناصر التحكم البسيطة -->
+      
+        </div>
+
+        <!-- معلومات الفيديو -->
+        <div class="video-info-panel">
+            <div class="video-meta">
+                <h2>{{ video.title }}</h2>
+                <p class="video-description">{{ video.description }}</p>
+                
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>تاريخ الرفع: {{ video.uploadDate }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-eye"></i>
+                        <span>المشاهدات: {{ video.views }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>الصف: {{ video.grade }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نظام النقاط -->
+            <div class="points-panel" id="pointsPanel">
+                <h3><i class="fas fa-trophy"></i> نظام النقاط</h3>
+                <div class="points-status">
+                    <div class="points-message" id="pointsMessage">
+                        شاهد 90% من الفيديو لتحصل على 10 نقاط!
+                        <div class="points-info-small" id="pointsInfo">
+                            التقدم الحالي: <span id="currentProgress">0%</span>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">0%</span>
+                    </div>
+                    <div class="points-goal">
+                        <span class="goal-text">الهدف: 90%</span>
+                        <span class="points-reward">+10 نقاط</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<!-- نافذة الإشعارات -->
+<div id="notification" class="notification">
+    <div class="notification-content">
+        <span id="notificationMessage"></span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* تنسيق الفيديو بنسبة 9:16 ومقاس أصغر */
+    .video-player-container {
+        max-width: 270px;
+        margin: 1rem auto;
+        padding: 0 1rem;
+    }
+
+    .video-wrapper {
+        position: relative;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        aspect-ratio: 9/16;
+        width: 100%;
+    }
+
+    #mainVideoPlayer {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        background: #000;
+    }
+
+    /* عناصر التحكم البسيطة */
+    .simple-controls {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .video-wrapper:hover .simple-controls {
+        opacity: 1;
+    }
+
+    .simple-btn {
+        background: rgba(0, 0, 0, 0.7);
+        border: none;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        backdrop-filter: blur(5px);
+        transition: all 0.2s;
+    }
+
+    .simple-btn:hover {
+        background: rgba(0, 0, 0, 0.9);
+        transform: scale(1.05);
+    }
+
+    /* تنسيق الإشعارات */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        z-index: 10000;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        max-width: 300px;
+        font-size: 14px;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification.success {
+        border-left: 4px solid #10b981;
+    }
+
+    .notification.info {
+        border-left: 4px solid #3b82f6;
+    }
+
+    .notification.error {
+        border-left: 4px solid #ef4444;
+    }
+
+    /* تحسين التقدم */
+    .progress-container {
+        margin-top: 8px;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #10b981);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-text {
+        font-size: 12px;
+        font-weight: bold;
+        margin-top: 4px;
+    }
+
+    /* نظام النقاط المحسن */
+    .points-panel {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+    }
+
+    .points-panel h3 {
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 1rem;
+    }
+
+    .points-message {
+        text-align: center;
+        margin-bottom: 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .points-info-small {
+        font-size: 0.8rem;
+        margin-top: 5px;
+        opacity: 0.9;
+    }
+
+    .points-goal {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .goal-text {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .points-reward {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .points-earned {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .points-earned .progress-fill {
+        background: linear-gradient(90deg, #ffd700, #ffed4e);
+    }
+
+    /* تحسينات إضافية */
+    .goal-achieved {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    /* الفيديوهات المقترحة */
+    .suggested-videos {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .suggested-videos h3 {
+        color: white;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .suggested-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .suggested-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .suggested-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .suggested-thumbnail {
+        position: relative;
+        aspect-ratio: 16/9;
+        overflow: hidden;
+    }
+
+    .suggested-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .play-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .suggested-card:hover .play-overlay {
+        opacity: 1;
+    }
+
+    .suggested-info {
+        padding: 1rem;
+    }
+
+    .suggested-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2d3748;
+    }
+
+    .suggested-info p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.9rem;
+    }
+
+    /* معلومات الفيديو */
+    .video-info-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .video-meta h2 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .video-description {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .meta-item i {
+        color: #667eea;
+        width: 16px;
+    }
+
+    /* التجاوب */
+    @media (max-width: 768px) {
+        .video-player-container {
+            max-width: 100%;
+        }
+
+        .suggested-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .meta-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const videoId = "{{ video.id }}";
+    const videoTitle = "{{ video.title }}";
+    let currentPlaybackRate = 1;
+    let hasEarnedPoints = false;
+    let watchStartTime = null;
+    let videoCompleted = false;
+    const TARGET_PERCENTAGE = 90;
+    const POINTS_REWARD = 10;
+    let pointsAwarded = false;
+
+    // عناصر DOM
+    const videoPlayer = document.getElementById('mainVideoPlayer');
+    const pointsPanel = document.getElementById('pointsPanel');
+    const pointsMessage = document.getElementById('pointsMessage');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const speedText = document.getElementById('speedText');
+    const currentPointsSpan = document.getElementById('currentPoints');
+    const currentProgressSpan = document.getElementById('currentProgress');
+
+    // سرعات التشغيل المتاحة
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+    // تهيئة الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeVideoPlayer();
+        loadStudentPoints();
+        checkWatchStatus();
+        loadSuggestedVideos();
+        startWatchSession();
+    });
+
+    // تهيئة مشغل الفيديو
+    function initializeVideoPlayer() {
+        videoPlayer.addEventListener('timeupdate', updateProgress);
+        videoPlayer.addEventListener('ended', onVideoEnded);
+        videoPlayer.addEventListener('play', function() {
+            startWatchSession();
+        });
+
+        videoPlayer.addEventListener('error', function(e) {
+            console.error('خطأ في تشغيل الفيديو:', e);
+            showNotification('حدث خطأ في تشغيل الفيديو', 'error');
+        });
+
+        videoPlayer.setAttribute('playsinline', '');
+        videoPlayer.setAttribute('webkit-playsinline', '');
+    }
+
+    // تحديث شريط التقدم
+    function updateProgress() {
+        if (videoPlayer.duration) {
+            const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            const roundedProgress = Math.round(progress);
+            
+            progressFill.style.width = progress + '%';
+            progressText.textContent = roundedProgress + '%';
+            currentProgressSpan.textContent = roundedProgress + '%';
+            
+            // التحقق من الوصول إلى 90% لمنح النقاط
+            if (progress >= TARGET_PERCENTAGE && !pointsAwarded && !hasEarnedPoints) {
+                console.log(`🎯 تم الوصول إلى ${TARGET_PERCENTAGE}% - جاري منح النقاط`);
+                pointsAwarded = true;
+                awardPoints();
+            }
+            
+            // تغيير لون شريط التقدم
+            if (progress >= TARGET_PERCENTAGE - 10 && progress < TARGET_PERCENTAGE) {
+                progressFill.style.background = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+            } else if (progress >= TARGET_PERCENTAGE) {
+                progressFill.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+            }
+        }
+    }
+
+    // عند انتهاء الفيديو
+    function onVideoEnded() {
+        console.log('الفيديو انتهى');
+        if (!pointsAwarded && !hasEarnedPoints) {
+            const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            if (progress >= TARGET_PERCENTAGE) {
+                console.log('التقدم النهائي:', progress, '% - منح النقاط');
+                pointsAwarded = true;
+                awardPoints();
+            }
+        }
+        endWatchSession();
+        showNotification('تم إنهاء الفيديو بنجاح', 'success');
+    }
+
+    // منح النقاط
+    async function awardPoints() {
+        try {
+            const currentProgress = Math.min(100, Math.round((videoPlayer.currentTime / videoPlayer.duration) * 100));
+            console.log('🎁 جاري منح النقاط، التقدم:', currentProgress, '%');
+            
+            const response = await fetch('/api/videos/watch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    video_id: videoId,
+                    watch_percentage: currentProgress
+                })
+            });
+
+            const result = await response.json();
+            console.log('📊 نتيجة منح النقاط:', result);
+            
+            if (result.success) {
+                hasEarnedPoints = true;
+                pointsMessage.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    مبروك! حصلت على ${POINTS_REWARD} نقاط
+                    <div class="points-info-small">
+                        لقد شاهدت ${currentProgress}% من الفيديو
+                    </div>
+                `;
+                pointsPanel.classList.add('points-earned');
+                
+                // تحديث النقاط الحالية
+                if (result.total_points !== undefined) {
+                    currentPointsSpan.textContent = result.total_points;
+                    console.log('🔄 النقاط المحدثة:', result.total_points);
+                }
+                
+                showNotification(`🎉 مبروك! حصلت على ${POINTS_REWARD} نقاط`, 'success');
+            } else {
+                console.error('❌ فشل في منح النقاط:', result.message);
+                showNotification(result.message || 'فشل في منح النقاط', 'error');
+                pointsAwarded = false;
+            }
+        } catch (error) {
+            console.error('❌ Error awarding points:', error);
+            showNotification('حدث خطأ في الاتصال بالخادم', 'error');
+            pointsAwarded = false;
+        }
+    }
+
+    // التحقق من حالة المشاهدة
+    async function checkWatchStatus() {
+        try {
+            console.log('🔍 جاري التحقق من حالة المشاهدة للفيديو:', videoId);
+            
+            const response = await fetch(`/api/videos/${videoId}/watch-status`);
+            const result = await response.json();
+            console.log('📋 نتيجة التحقق من المشاهدة:', result);
+            
+            if (result.success && result.has_watched) {
+                hasEarnedPoints = true;
+                pointsAwarded = true;
+                pointsMessage.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    لقد شاهدت هذا الفيديو من قبل وحصلت على النقاط
+                    <div class="points-info-small">
+                        تمت المشاهدة بنسبة ${result.watch_percentage || 100}%
+                    </div>
+                `;
+                pointsPanel.classList.add('points-earned');
+                progressFill.style.width = '100%';
+                progressText.textContent = '100%';
+                currentProgressSpan.textContent = '100%';
+                console.log('✅ الفيديو تم مشاهدته مسبقاً');
+            } else {
+                console.log('🆕 الفيديو لم يشاهد من قبل');
+            }
+        } catch (error) {
+            console.error('❌ Error checking watch status:', error);
+        }
+    }
+
+    // تحميل النقاط الحالية للطالب
+    async function loadStudentPoints() {
+        try {
+            const response = await fetch('/api/student/stats');
+            const result = await response.json();
+            
+            if (result.success && result.points !== undefined) {
+                currentPointsSpan.textContent = result.points;
+                console.log('💰 النقاط الحالية:', result.points);
+            }
+        } catch (error) {
+            console.error('❌ Error loading student points:', error);
+            currentPointsSpan.textContent = '0';
+        }
+    }
+
+    // تغيير سرعة التشغيل
+    function changeSpeed() {
+        const currentIndex = speeds.indexOf(currentPlaybackRate);
+        const nextIndex = (currentIndex + 1) % speeds.length;
+        
+        currentPlaybackRate = speeds[nextIndex];
+        videoPlayer.playbackRate = currentPlaybackRate;
+        speedText.textContent = currentPlaybackRate + 'x';
+        
+        showNotification(`سرعة التشغيل: ${currentPlaybackRate}x`, 'info');
+    }
+
+    // ملء الشاشة
+    function toggleFullscreen() {
+        const element = videoPlayer.parentElement;
+        
+        if (!document.fullscreenElement) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+    }
+
+    // تحميل الفيديوهات المقترحة
+    async function loadSuggestedVideos() {
+        try {
+            const response = await fetch('/api/videos');
+            const videos = await response.json();
+            
+            const currentGrade = "{{ video.grade }}";
+            const suggestedVideos = videos
+                .filter(v => v.id !== videoId && v.grade === currentGrade)
+                .slice(0, 4);
+            
+            const container = document.getElementById('suggestedVideos');
+            if (suggestedVideos.length > 0) {
+                container.innerHTML = suggestedVideos.map(video => `
+                    <div class="suggested-card" onclick="openVideo('${video.id}')">
+                        <div class="suggested-thumbnail">
+                            <img src="${video.thumbnail}" alt="${video.title}" onerror="this.src='/static/images/default-thumbnail.jpg'">
+                            <div class="play-overlay">
+                                <i class="fas fa-play"></i>
+                            </div>
+                        </div>
+                        <div class="suggested-info">
+                            <h4>${video.title}</h4>
+                            <p>${video.views || 0} مشاهدة</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1;">لا توجد فيديوهات مقترحة حالياً</p>';
+            }
+        } catch (error) {
+            console.error('Error loading suggested videos:', error);
+        }
+    }
+
+    // بدء جلسة المشاهدة
+    function startWatchSession() {
+        if (!watchStartTime) {
+            watchStartTime = new Date();
+            console.log('⏱️ بدء جلسة المشاهدة:', watchStartTime);
+        }
+    }
+
+    // إنهاء جلسة المشاهدة
+    function endWatchSession() {
+        if (watchStartTime) {
+            const endTime = new Date();
+            const watchDuration = (endTime - watchStartTime) / 1000;
+            console.log('⏱️ مدة المشاهدة:', Math.round(watchDuration), 'ثانية');
+            watchStartTime = null;
+        }
+    }
+
+    // فتح فيديو آخر
+    function openVideo(videoId) {
+        window.location.href = `/video/player/${videoId}`;
+    }
+
+    // العودة للخلف
+    function goBack() {
+        window.history.back();
+    }
+
+    // عرض الإشعارات
+    function showNotification(message, type = 'info') {
+        const notification = document.getElementById('notification');
+        const messageElement = document.getElementById('notificationMessage');
+        
+        messageElement.textContent = message;
+        notification.className = `notification show ${type}`;
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    // تصحيح إضافي: التحقق من التقدم كل ثانية
+    setInterval(() => {
+        if (videoPlayer.duration && videoPlayer.currentTime > 0) {
+            const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+            console.log('📊 التقدم الحالي:', Math.round(progress) + '%');
+        }
+    }, 1000);
+    
+</script>
+{% endblock %}
