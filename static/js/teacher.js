@@ -1678,4 +1678,228 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('✅ تم تهيئة لوحة المعلم بنجاح');
     }
-});
+});// ==================== نظام رفع الفيديوهات مع شريط التقدم ====================
+
+let uploadProgressInterval;
+
+async function uploadVideo() {
+    const formData = new FormData();
+    const videoFile = document.getElementById('videoFile').files[0];
+    const thumbnailFile = document.getElementById('videoThumbnail').files[0];
+    const title = document.getElementById('videoTitle').value;
+    const description = document.getElementById('videoDescription').value;
+    const grade = document.getElementById('videoGrade').value;
+    
+    if (!videoFile || !title || !description) {
+        showAlert('يرجى ملء جميع الحقول المطلوبة', 'error');
+        return;
+    }
+    
+    formData.append('video', videoFile);
+    if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+    }
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('grade', grade);
+    
+    try {
+        const button = document.querySelector('#uploadVideoSection .btn-primary');
+        const originalText = button.innerHTML;
+        
+        // إظهار شريط التقدم
+        showUploadProgress();
+        
+        // بدء محاكاة التقدم (لأغراض العرض)
+        startProgressSimulation();
+        
+        const response = await fetch('/api/videos/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        // إيقاف محاكاة التقدم
+        stopProgressSimulation();
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // تعبئة شريط التقدم إلى 100% قبل الإخفاء
+            updateUploadProgress(100, 'اكتمال الرفع');
+            setTimeout(() => {
+                hideUploadProgress();
+                showAlert(result.message, 'success');
+                resetUploadForm();
+                loadTeacherData();
+            }, 1000);
+        } else {
+            hideUploadProgress();
+            showAlert(result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error uploading video:', error);
+        stopProgressSimulation();
+        hideUploadProgress();
+        showAlert('حدث خطأ أثناء رفع الفيديو', 'error');
+    } finally {
+        const button = document.querySelector('#uploadVideoSection .btn-primary');
+        hideLoading(button, '<i class="fas fa-upload"></i> رفع الفيديو');
+    }
+}
+
+// عرض شريط التقدم
+function showUploadProgress() {
+    let progressContainer = document.getElementById('uploadProgressContainer');
+    
+    // إنشاء عنصر شريط التقدم إذا لم يكن موجوداً
+    if (!progressContainer) {
+        progressContainer = document.createElement('div');
+        progressContainer.id = 'uploadProgressContainer';
+        progressContainer.className = 'upload-progress-container';
+        progressContainer.innerHTML = `
+            <div class="upload-progress-header">
+                <h4><i class="fas fa-upload"></i> جاري رفع الفيديو</h4>
+                <span id="uploadProgressPercentage">0%</span>
+            </div>
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill" id="uploadProgressFill"></div>
+            </div>
+            <div class="upload-progress-info">
+                <span id="uploadProgressStatus">جاري التحضير...</span>
+                <span id="uploadProgressSpeed"></span>
+            </div>
+            <div class="upload-progress-details">
+                <div class="upload-detail">
+                    <span>حجم الملف:</span>
+                    <span id="uploadFileSize">--</span>
+                </div>
+                <div class="upload-detail">
+                    <span>الوقت المتبقي:</span>
+                    <span id="uploadTimeRemaining">--</span>
+                </div>
+            </div>
+        `;
+        
+        // إضافة شريط التقدم بعد زر الرفع
+        const uploadButton = document.querySelector('#uploadVideoSection .btn-primary');
+        if (uploadButton) {
+            uploadButton.parentNode.insertBefore(progressContainer, uploadButton.nextSibling);
+        }
+    }
+    
+    // تعيين حجم الملف
+    const videoFile = document.getElementById('videoFile').files[0];
+    if (videoFile) {
+        const fileSize = formatFileSize(videoFile.size);
+        document.getElementById('uploadFileSize').textContent = fileSize;
+    }
+    
+    progressContainer.style.display = 'block';
+    updateUploadProgress(0, 'جاري التحضير للرفع...');
+}
+
+// إخفاء شريط التقدم
+function hideUploadProgress() {
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    if (progressContainer) {
+        progressContainer.style.display = 'none';
+    }
+}
+
+// تحديث شريط التقدم
+function updateUploadProgress(percentage, status = '') {
+    const progressFill = document.getElementById('uploadProgressFill');
+    const progressPercentage = document.getElementById('uploadProgressPercentage');
+    const progressStatus = document.getElementById('uploadProgressStatus');
+    
+    if (progressFill) {
+        progressFill.style.width = percentage + '%';
+    }
+    
+    if (progressPercentage) {
+        progressPercentage.textContent = percentage + '%';
+    }
+    
+    if (progressStatus && status) {
+        progressStatus.textContent = status;
+    }
+    
+    // تحديث سرعة الرفع والوقت المتبقي (محاكاة)
+    if (percentage > 0 && percentage < 100) {
+        const speedElement = document.getElementById('uploadProgressSpeed');
+        const timeElement = document.getElementById('uploadTimeRemaining');
+        
+        if (speedElement) {
+            const speeds = ['1.2 MB/s', '956 KB/s', '1.5 MB/s', '800 KB/s'];
+            const randomSpeed = speeds[Math.floor(Math.random() * speeds.length)];
+            speedElement.textContent = randomSpeed;
+        }
+        
+        if (timeElement) {
+            const remainingTime = Math.round((100 - percentage) / 2); // محاكاة
+            timeElement.textContent = `${remainingTime} ثانية`;
+        }
+    }
+}
+
+// محاكاة تقدم الرفع (لأغراض العرض)
+function startProgressSimulation() {
+    let progress = 0;
+    
+    uploadProgressInterval = setInterval(() => {
+        if (progress < 90) { // نتوقف عند 90% وننتظر الاستجابة الفعلية
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            
+            const statuses = [
+                'جاري رفع الفيديو...',
+                'معالجة البيانات...',
+                'تحضير العرض...',
+                'جاري حفظ المعلومات...'
+            ];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+            
+            updateUploadProgress(Math.round(progress), randomStatus);
+        }
+    }, 800);
+}
+
+function stopProgressSimulation() {
+    if (uploadProgressInterval) {
+        clearInterval(uploadProgressInterval);
+        uploadProgressInterval = null;
+    }
+}
+
+// تنسيق حجم الملف
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// تحديث دالة resetUploadForm لإخفاء شريط التقدم
+function resetUploadForm() {
+    document.getElementById('videoFile').value = '';
+    document.getElementById('videoThumbnail').value = '';
+    document.getElementById('videoTitle').value = '';
+    document.getElementById('videoDescription').value = '';
+    document.getElementById('videoGrade').value = 'first';
+    document.getElementById('thumbnailPreview').style.display = 'none';
+    
+    // إخفاء شريط التقدم
+    hideUploadProgress();
+    
+    const fileUpload = document.querySelector('.file-upload');
+    if (fileUpload) {
+        fileUpload.querySelector('h3').textContent = 'انقر لرفع فيديو';
+        fileUpload.querySelector('p').textContent = 'يمكنك رفع ملفات الفيديو من جهازك';
+    }
+}
+
+// ==================== نظام رفع الفيديوهات - نهاية ====================
